@@ -45,3 +45,42 @@ export function compare(receipts, transactions) {
   const unmatched = transactions.filter((_, i) => !usedTx.has(i));
   return { updates, unmatched };
 }
+
+const digits = (s) => (s || "").toString().replace(/\D/g, "");
+const samePhone = (a, b) => a && b && digits(a).slice(-9) === digits(b).slice(-9);
+const sameOrder = (a, b) => a && b && digits(a) && digits(a) === digits(b);
+
+/**
+ * Kayqarn les commandes (virement) m3a les reçus dyal l-groupe.
+ * orders: [{rowNumber, order, client, phone, amount}]
+ * receipts: [{rowNumber, order, amount, sender, client, phone, status}]
+ */
+export function matchOrders(orders, receipts) {
+  const used = new Set();
+  const orderUpdates = [];
+  const receiptLinks = [];
+
+  const pick = (o, test) => receipts.find((r) => !used.has(r.rowNumber) && test(r));
+
+  for (const o of orders) {
+    const amountOk = (r) => o.amount == null || r.amount == null || Math.abs(r.amount - o.amount) <= 0.5;
+    let r =
+      pick(o, (r) => sameOrder(r.order, o.order)) ||
+      pick(o, (r) => samePhone(r.phone, o.phone) && amountOk(r)) ||
+      pick(o, (r) => r.amount != null && amountOk(r) && (nameScore(o.client, r.sender) > 0 || nameScore(o.client, r.client) > 0));
+
+    if (!r) { orderUpdates.push({ ...o, status: "❌ Ma sift hta reçu" }); continue; }
+    used.add(r.rowNumber);
+    if (!r.order) receiptLinks.push({ rowNumber: r.rowNumber, order: o.order });
+
+    let status;
+    if (!amountOk(r)) status = `⚠️ Montant différent (reçu ${r.amount} DH)`;
+    else if (r.status?.startsWith("✅")) status = "✅ Reçu + wsl l-bank";
+    else if (r.status?.startsWith("❌")) status = "🚨 Reçu kayn walakin ma wslch l-bank";
+    else status = "🧾 Reçu kayn (mazal ma tchecka m3a l-bank)";
+    orderUpdates.push({ ...o, status, receiptRow: r.rowNumber });
+  }
+
+  const orphanReceipts = receipts.filter((r) => !used.has(r.rowNumber));
+  return { orderUpdates, receiptLinks, orphanReceipts };
+}

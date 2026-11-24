@@ -6,7 +6,7 @@ import qrcode from "qrcode-terminal";
 import pino from "pino";
 import { extractReceipt, extractStatement } from "./ai.js";
 import * as db from "./sheets.js";
-import { compare } from "./compare.js";
+import { compare, matchOrders } from "./compare.js";
 
 const logger = pino({ level: "warn" });
 const GROUP_ID = process.env.GROUP_ID;
@@ -61,16 +61,7 @@ async function handleBankStatement(msg, sock) {
   await sock.sendMessage(OWNER, { text: "⏳ Kanqra l-relevé w kanqarn..." });
   const { transactions } = await extractStatement({ image });
 
-  const rows = await db.readReceipts();
-  const receipts = rows.map(({ rowNumber, cells }) => ({
-    rowNumber,
-    client: cells[1],
-    order: cells[3],
-    amount: cells[4] === "" || cells[4] == null ? null : Number(String(cells[4]).replace(",", ".")),
-    date: cells[5],
-    sender: cells[6] || cells[1],
-    status: cells[11],
-  }));
+  const receipts = await loadReceipts();
 
   const { updates, unmatched } = compare(receipts, transactions);
   for (const u of updates) await db.setReceiptStatus(u.rowNumber, u.status, u.bankInfo);
@@ -87,6 +78,50 @@ async function handleBankStatement(msg, sock) {
   if (warn.length) report += `\n⚠️ Chouf b 3inik (${warn.length}):\n${warn.map(line).join("\n")}\n`;
   if (ko.length) report += `\n❌ Ma wslouch (${ko.length}):\n${ko.map(line).join("\n")}\n`;
   if (unmatched.length) report += `\n💰 Flouss dakhlin bla reçu (${unmatched.length}):\n${unmatched.map((t) => `• ${t.amount} DH — ${t.label}`).join("\n")}`;
+  await sock.sendMessage(OWNER, { text: report });
+  await checkOrders(sock);
+}
+
+async function loadReceipts() {
+  const rows = await db.readReceipts();
+  return rows.map(({ rowNumber, cells }) => ({
+    rowNumber,
+    client: cells[1],
+    phone: cells[2],
+    order: cells[3],
+    amount: cells[4] === "" || cells[4] == null ? null : Number(String(cells[4]).replace(",", ".")),
+    date: cells[5],
+    sender: cells[6] || cells[1],
+    status: cells[11],
+  }));
+}
+
+// Kaychouf wach kol commande "virement" f Sheet 3ndha reçu f l-groupe
+async function checkOrders(sock) {
+  const { orders, statusCol } = await db.readOrders();
+  const receipts = await loadReceipts();
+  const { orderUpdates, receiptLinks, orphanReceipts } = matchOrders(orders, receipts);
+
+  for (const l of receiptLinks) await db.setReceiptOrder(l.rowNumber, l.order);
+  await db.setOrderStatuses(statusCol, orderUpdates);
+
+  const fmt = (o) => `• #${o.order} ${o.client || ""} — ${o.amount ?? "?"} DH`;
+  const group = (p) => orderUpdates.filter((u) => u.status.startsWith(p));
+  const sections = [
+    ["✅", "Reçu + wsl l-bank"],
+    ["🧾", "Reçu kayn, mazal ma tchecka m3a l-bank"],
+    ["⚠️", "Montant différent"],
+    ["🚨", "Reçu kayn walakin flouss ma wslouch"],
+    ["❌", "Commande b virement bla reçu f l-groupe"],
+  ];
+  let report = `📦 *Commandes vs groupe* (${orders.length} commande b virement)\n`;
+  for (const [icon, title] of sections) {
+    const list = group(icon);
+    if (!list.length) continue;
+    report += icon === "✅" ? `\n✅ ${title}: ${list.length}\n` : `\n${icon} ${title} (${list.length}):\n${list.map((u) => fmt(u) + (icon === "⚠️" ? ` → ${u.status}` : "")).join("\n")}\n`;
+  }
+  if (orphanReceipts.length)
+    report += `\n❓ Reçus f l-groupe bla commande f Sheet (${orphanReceipts.length}):\n${orphanReceipts.map((r) => `• ${r.client || r.sender || "?"} — ${r.amount ?? "?"} DH`).join("\n")}`;
   await sock.sendMessage(OWNER, { text: report });
 }
 
@@ -117,7 +152,9 @@ async function start() {
           if (!GROUP_ID) { console.log(`ℹ️ Message mn groupe: ${chat} — 7ttha f GROUP_ID`); continue; }
           if (chat === GROUP_ID) await handleGroupMessage(msg, sock);
         } else if (chat === OWNER) {
-          await handleBankStatement(msg, sock);
+          const t = getText(msg.message).trim().toLowerCase();
+          if (!msg.message.imageMessage && ["check", "commandes", "orders"].includes(t)) await checkOrders(sock);
+          else await handleBankStatement(msg, sock);
         }
       } catch (e) {
         console.error("Erreur:", e.message);

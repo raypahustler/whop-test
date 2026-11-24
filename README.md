@@ -12,6 +12,21 @@ Kaysjjel kol virement f Google Sheet. Mli katsift lih screenshot dyal l-bank f p
    - Chkoun ma wslouch
    - Flouss li dkhlo bla reçu
 
+## Check dyal les commandes ↔ groupe
+L-bot kaychouf kol commande f onglet **Orders** li l-paiement dyalha **virement**, w kayqlleb 3la reçu dyalha f l-groupe:
+- 1) b N° commande, 2) b numéro dyal téléphone + montant, 3) b smiya + montant.
+
+Kaysift lik rapport:
+- ✅ Reçu kayn + flouss wslo l-bank
+- 🧾 Reçu kayn, mazal ma tchecka m3a l-bank
+- ⚠️ Montant f reçu machi howa montant dyal commande
+- 🚨 Reçu kayn walakin flouss ma wslouch (yqder ykoun **faux reçu**)
+- ❌ Commande b virement w l-client ma sift hta reçu
+- ❓ Reçus f l-groupe ma 3ndhomch commande f Sheet
+
+Had check kaytdar automatiquement mli katsift relevé bancaire. Ila bghitih bla relevé, sift l-bot f privé: **check**.
+Smiyat les colonnes dyal Orders kat7ttehom f `.env` (`ORDERS_COL_...`). Ila 3mmrti `ORDERS_COL_STATUS`, l-bot ykteb statut f dik l-colonne nichan f Sheet dyal les commandes.
+
 Comparaison: montant b dbt (±0.5 DH) + date (±3 jours) + smiya.
 
 ## Installation (mra wa7da)
