@@ -1,0 +1,17 @@
+{
+  "name": "virement-bot",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp kayqra les reçus de virement f groupe, kaysjjelhom f Google Sheet w kayqarnhom m3a relevé bancaire",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": { "start": "node src/index.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "@whiskeysockets/baileys": "^6.7.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0",
+    "pino": "^9.4.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
