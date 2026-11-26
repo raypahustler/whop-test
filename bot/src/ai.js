@@ -20,6 +20,26 @@ const RECEIPT_SCHEMA = {
   },
 };
 
+const ORDER_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["is_order", "client_name", "phone", "product", "quantity", "address", "city", "delivery_date", "delivery_time", "delivery_fee", "amount", "notes"],
+  properties: {
+    is_order: { type: "boolean", description: "true ila l-message commande (machi discussion 3adiya)" },
+    client_name: { type: ["string", "null"] },
+    phone: { type: ["string", "null"], description: "numéro marocain, ghir les chiffres (06/07...)" },
+    product: { type: ["string", "null"], description: "produit kima mktoub (ex: plateau)" },
+    quantity: { type: ["string", "null"], description: "ex: 12 pieces" },
+    address: { type: ["string", "null"] },
+    city: { type: ["string", "null"] },
+    delivery_date: { type: ["string", "null"], description: "YYYY-MM-DD, date dyal livraison" },
+    delivery_time: { type: ["string", "null"], description: "ex: 18:00" },
+    delivery_fee: { type: ["number", "null"], description: "frais livraison (ex: '+15liv' = 15)" },
+    amount: { type: ["number", "null"], description: "prix total ila mktoub" },
+    notes: { type: ["string", "null"] },
+  },
+};
+
 const STATEMENT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -73,6 +93,20 @@ export function extractReceipt({ image, caption }) {
       ? `Message dyal l-client: """${caption}"""\nStakhrj ma3loumat l-virement.`
       : "Stakhrj ma3loumat l-virement mn had tswira.",
     schema: RECEIPT_SCHEMA,
+  });
+}
+
+export function extractOrder({ text, image, postedAt }) {
+  return ask({
+    system:
+      "Nta kayqra les commandes li kaytsiftou f groupe WhatsApp dyal traiteur marocain (pastilla, plateaux...). " +
+      "Les messages b Darija/Français, bhal:\n" +
+      "vendredi 27 novembre mea 17h / plateau 12 pieces / rabat hay riyad prestigia+15liv / mayssane / 0661986331 / mea 18h\n" +
+      "'mea 18h' = m3a 18h (wa9t). '+15liv' = 15 DH livraison. Ila kaynin 2 dyal l-awqat, l-akhir howa wa9t l-livraison. " +
+      `Message tsift: ${postedAt}. Ila l-3am ma mktoubch, khod l-date l-jaya l-qriba.`,
+    image,
+    text: `Message:\n"""${text}"""\nStakhrj l-commande.`,
+    schema: ORDER_SCHEMA,
   });
 }
 
