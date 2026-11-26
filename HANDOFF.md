@@ -17,9 +17,11 @@ Webapp "Audit Check" l traiteur marocain (allopastilla.site):
 
 ## Status
 - ✅ Phase 1 kamla, build OK, logique mjarrba b données khawyin. **Mazal ma tjarrbat m3a Supabase/Sheets/WhatsApp dyal bssah** (ma kaynach clés).
-- 🚧 Phase 2 Feedback (WhatsApp Business Cloud API) — WIP:
-  - Kayn: `supabase/002_feedback.sql`, `web/lib/whatsapp.js` (send template, signature), `web/lib/feedback.js` (cron: livraisons J+delay → template; webhook: jawab → Claude analyse note/sentiment/followup → remerciement), routes `web/app/api/whatsapp/webhook`, `web/app/api/cron/feedback`, `vercel.json` cron, actions `sendFeedbackNow`/`markFollowup`.
-  - Khass: page `web/app/feedback/page.js` (KPIs: tsift, taux réponse, note moyenne; liste "needs followup" f l-awwel; bouton envoi manuel), `npm run build`, test.
+- ✅ Phase 2 Feedback (WhatsApp Business Cloud API) — code kaml, build OK:
+  - `supabase/002_feedback.sql`, `web/lib/whatsapp.js`, `web/lib/feedback.js`, routes `api/whatsapp/webhook` + `api/cron/feedback`, `vercel.json` cron, actions `sendFeedbackNow`/`markFollowup`.
+  - `web/app/feedback/page.js` + `send.js`: KPIs (tsiftou, taux réponse, note moyenne, suivi, erreurs), filtre dates (default 30 jours), liste "Khass ttassel bihom" f l-awwel (bouton ✔ Tsalat), bouton envoi manuel (admin/supervisor), staff kaychouf region dyalo (RLS).
+  - Mjarrba b mock Supabase: page kat-render, redirect /login bla session, webhook verify GET OK, POST bla signature → 401, cron bla secret → 401.
+  - **Mazal:** test m3a Supabase/Meta dyal bssah (run `002_feedback.sql`, template `feedback_commande` approuvé, WA_* + CRON_SECRET f Vercel, webhook URL f Meta).
 
 ## Mazal khassna mn l-user
 1. Smiyat les colonnes dyal les 2 Sheets (ligne 1) — defaults f `web/.env.example` (COL_*).
