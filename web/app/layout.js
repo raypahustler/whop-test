@@ -22,7 +22,7 @@ export default async function RootLayout({ children }) {
               <Link href="/">📊 Dashboard</Link>
               <Link href="/orders">📦 Check commandes</Link>
               {canMoney && <Link href="/virements">💰 Virements</Link>}
-              <span className="small" style={{ padding: "8px 10px" }}>⭐ Feedback (Phase 2)</span>
+              <Link href="/feedback">⭐ Feedback</Link>
               {profile?.role === "admin" && <Link href="/users">👥 Utilisateurs</Link>}
               <div className="me">
                 {profile?.full_name}<br />

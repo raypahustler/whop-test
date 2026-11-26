@@ -14,7 +14,7 @@ export async function middleware(request) {
     },
   });
   const { data: { user } } = await sb.auth.getUser();
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
+  if (!user && !request.nextUrl.pathname.startsWith("/login") && !request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return response;

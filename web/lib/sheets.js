@@ -11,7 +11,9 @@ const COLS = {
   address: cols("COL_ADDRESS", "Adresse"),
   amount: cols("COL_AMOUNT", "Prix,Montant,Total"),
   payment: cols("COL_PAYMENT", "Paiement,Mode paiement"),
+  status: cols("COL_STATUS", "Statut,Etat"),
 };
+const OPTIONAL = ["qty", "address", "status"];
 
 const MONTHS = { janvier: 1, fevrier: 2, février: 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, aout: 8, août: 8, septembre: 9, octobre: 10, novembre: 11, decembre: 12, décembre: 12 };
 const pad = (n) => String(n).padStart(2, "0");
@@ -68,9 +70,10 @@ async function readRegion(region) {
         address: get(r, "address") || "",
         amount: toNum(get(r, "amount")),
         payment: String(get(r, "payment") ?? ""),
+        status: String(get(r, "status") ?? ""),
       }))
       .filter((r) => r.phone || r.client_name);
-    const missing = Object.entries(c).filter(([, i]) => i < 0).map(([k]) => k);
+    const missing = Object.entries(c).filter(([k, i]) => i < 0 && !OPTIONAL.includes(k)).map(([k]) => k);
     return { region, rows, missing, sheetUrl: `https://docs.google.com/spreadsheets/d/${id}/edit` };
   } catch (e) {
     return { region, rows: [], error: e.message };
@@ -83,5 +86,9 @@ export const readSheets = unstable_cache(
   ["sheets"],
   { revalidate: 60, tags: ["sheets"] },
 );
+
+export const readSheetsFresh = (regions) => Promise.all(regions.map(readRegion));
+
+export const isDelivered = (row) => !row.status || row.status.toLowerCase().includes((process.env.DELIVERED_KEYWORD || "livr").toLowerCase());
 
 export const isVirement = (row) => row.payment.toLowerCase().includes((process.env.PAYMENT_KEYWORD || "virement").toLowerCase());

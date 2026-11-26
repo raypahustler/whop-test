@@ -72,3 +72,19 @@ export async function updateUser(formData) {
   await admin().from("profiles").update({ role: formData.get("role"), region: formData.get("region") || null }).eq("id", formData.get("id"));
   revalidatePath("/users");
 }
+
+export async function sendFeedbackNow(_, formData) {
+  await requireRole("admin", "supervisor");
+  const { queueAndSend } = await import("@/lib/feedback");
+  try {
+    const r = await queueAndSend({ date: formData.get("date") || undefined });
+    revalidatePath("/feedback");
+    return { ok: `${r.date}: ${r.found} livraison · ${r.sent} tsift · ${r.failed} fشل`.replace("fشل", "erreur") };
+  } catch (e) { return { error: e.message }; }
+}
+
+export async function markFollowup(formData) {
+  const { sb } = await requireRole("admin", "supervisor");
+  await sb.from("feedback_requests").update({ followup_done: true }).eq("id", formData.get("id"));
+  revalidatePath("/feedback");
+}
